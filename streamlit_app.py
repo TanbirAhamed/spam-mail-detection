@@ -86,6 +86,7 @@ def load_models():
             except Exception as e:
                 st.warning(f"Failed to load {fname}: {e}")
                 continue
+
         try:
             with open('models/tokenizer.pkl', 'rb') as f:
                 tokenizer = pickle.load(f)
@@ -95,7 +96,6 @@ def load_models():
         try:
             models['DNN'] = load_model('models/model_dnn.h5', compile=False)
         except:
-            
             pass
 
         try:
@@ -122,7 +122,6 @@ def preprocess_text(text: str) -> str:
     try:
         tokens = word_tokenize(text)
     except Exception:
-
         tokens = text.split()
 
     tokens_cleaned = []
@@ -167,6 +166,7 @@ def predict_email(email_text: str, model_name: str, models: dict, tfidf, scaler,
             prediction = 1 if pred_prob > 0.5 else 0
             confidence = pred_prob if prediction == 1 else 1 - pred_prob
         except Exception as e:
+
             st.error(f"DL prediction error for {model_name}: {e}")
             return "N/A", 0.0
 
@@ -183,14 +183,13 @@ def predict_email(email_text: str, model_name: str, models: dict, tfidf, scaler,
         except Exception as e:
             st.error(f"TF-IDF transform error: {e}")
             return "N/A", 0.0
-.
+
         name_low = model_name.lower()
         is_naive = ('naive' in name_low) or ('bayes' in name_low)
 
         if is_naive:
             features = tfidf_features
         else:
-            
             if scaler is None:
                 st.warning("Scaler not loaded — cannot compute numeric features; trying TF-IDF only.")
                 features = tfidf_features
@@ -200,7 +199,6 @@ def predict_email(email_text: str, model_name: str, models: dict, tfidf, scaler,
                     num_words = len(word_tokenize(email_text))
                     num_sentences = len(sent_tokenize(email_text))
                 except:
-
                     num_words = len(email_text.split())
                     num_sentences = email_text.count('.') + email_text.count('!') + email_text.count('?')
                 
@@ -221,6 +219,7 @@ def predict_email(email_text: str, model_name: str, models: dict, tfidf, scaler,
         if hasattr(model, 'predict_proba'):
             try:
                 proba = model.predict_proba(features)[0]
+
                 if isinstance(prediction, (np.integer, int)):
                     idx = int(prediction)
                     confidence = float(proba[idx])
