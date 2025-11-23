@@ -4,5 +4,5 @@ tensorflow==2.20.0
 Pillow==10.4.0
 plotly==5.24.1
 streamlit==1.38.0
-
-
+nltk==3.9.1
+scikit-learn==1.5.2
