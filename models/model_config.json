@@ -1,0 +1,6 @@
+{
+    "max_words": 5000,
+    "max_len": 100,
+    "best_model": "LSTM",
+    "best_f1_score": 0.9402390438247012
+}
