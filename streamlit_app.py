@@ -293,30 +293,41 @@ def main():
         st.metric("Best Model (config)", config.get('best_model', 'N/A'))
         st.metric("Best F1-Score", f"{config.get('best_f1_score',0):.4f}")
 
+    # Initialize session state for email text
+    if 'email_text' not in st.session_state:
+        st.session_state.email_text = ""
+
     # Main content
     col1, col2 = st.columns([3,2])
     with col1:
         st.subheader("📝 Enter Email Content")
-        email_text = st.text_area("Email Message", height=250, placeholder="Paste email here...")
-
-        # Quick examples
+        
+        # Quick examples - BEFORE text area
+        st.markdown("**Quick Examples:**")
         ex1, ex2, ex3 = st.columns(3)
         with ex1:
-            if st.button("🚨 Spam Example"):
-                st.session_state.email_text = "Congratulations! You've won $1,000,000! Click here to claim your prize now!"
-                st.rerun()
+            if st.button("🚨 Spam Example", use_container_width=True):
+                st.session_state.email_text = "Congratulations! You've won $1,000,000! Click here to claim your prize now! Act fast, this offer expires in 24 hours. Reply with your bank details to receive your winnings. Free money guaranteed!"
         with ex2:
-            if st.button("✅ Ham Example"):
-                st.session_state.email_text = "Hi team, just confirming our meeting tomorrow at 3pm."
-                st.rerun()
+            if st.button("✅ Ham Example", use_container_width=True):
+                st.session_state.email_text = "Hi team, just confirming our meeting tomorrow at 3pm in the conference room. Please review the attached agenda beforehand. Let me know if you have any questions. Thanks!"
         with ex3:
-            if st.button("⚠️ Phishing Example"):
-                st.session_state.email_text = "URGENT: Your account will be closed! Verify your information immediately."
-                st.rerun()
-
-        if 'email_text' in st.session_state:
-            email_text = st.session_state.email_text
-            del st.session_state.email_text
+            if st.button("⚠️ Phishing Example", use_container_width=True):
+                st.session_state.email_text = "URGENT: Your account will be closed! Verify your information immediately by clicking this link. Failure to respond within 24 hours will result in permanent suspension. Call now!"
+        
+        st.markdown("---")
+        
+        # Text area with value from session state
+        email_text = st.text_area(
+            "Email Message", 
+            value=st.session_state.email_text,
+            height=250, 
+            placeholder="Paste email here or use examples above...",
+            key="email_input"
+        )
+        
+        # Update session state when text changes
+        st.session_state.email_text = email_text
 
         predict_button = st.button("🔍 Analyze Email", type="primary", use_container_width=True)
 
