@@ -54,33 +54,33 @@ def load_models():
     config = {'max_len': 100, 'best_model': 'DNN', 'best_f1_score': 0.0}
 
     try:
-        # Load preprocessors safely
+        # Load preprocessors safely from models/ folder
         try:
-            with open('tfidf_vectorizer.pkl', 'rb') as f:
+            with open('models/tfidf_vectorizer.pkl', 'rb') as f:
                 tfidf = pickle.load(f)
         except Exception as e:
-            st.warning("tfidf_vectorizer.pkl not found or failed to load. Some models will not work.")
+            st.warning("models/tfidf_vectorizer.pkl not found or failed to load. Some models will not work.")
             tfidf = None
 
         try:
-            with open('scaler.pkl', 'rb') as f:
+            with open('models/scaler.pkl', 'rb') as f:
                 scaler = pickle.load(f)
         except Exception as e:
-            st.warning("scaler.pkl not found or failed to load. Numeric features won't be available for some models.")
+            st.warning("models/scaler.pkl not found or failed to load. Numeric features won't be available for some models.")
             scaler = None
 
         try:
-            with open('label_encoder.pkl', 'rb') as f:
+            with open('models/label_encoder.pkl', 'rb') as f:
                 encoder = pickle.load(f)
         except:
             encoder = None
 
         # Map of candidate model filenames (change these if your filenames differ)
         candidate_ml_files = [
-            'model_svm.pkl',
-            'model_naive_bayes.pkl',
-            'model_random_forest.pkl',
-            'model_gradient_boosting.pkl'
+            'models/model_svm.pkl',
+            'models/model_naive_bayes.pkl',
+            'models/model_random_forest.pkl',
+            'models/model_gradient_boosting.pkl'
         ]
 
         for fname in candidate_ml_files:
@@ -96,27 +96,27 @@ def load_models():
                 st.warning(f"Failed to load {fname}: {e}")
                 continue
 
-        # Deep learning models and tokenizer
+        # Deep learning models and tokenizer from models/ folder
         try:
-            with open('tokenizer.pkl', 'rb') as f:
+            with open('models/tokenizer.pkl', 'rb') as f:
                 tokenizer = pickle.load(f)
         except:
             tokenizer = None
 
         try:
-            models['DNN'] = load_model('model_dnn.h5', compile=False)
+            models['DNN'] = load_model('models/model_dnn.h5', compile=False)
         except:
             # ignore if missing
             pass
 
         try:
-            models['LSTM'] = load_model('model_lstm.h5', compile=False)
+            models['LSTM'] = load_model('models/model_lstm.h5', compile=False)
         except:
             pass
 
         # Attempt to load optional config file (not required)
         try:
-            with open('model_config.json', 'r') as f:
+            with open('models/model_config', 'r') as f:
                 cfg = json.load(f)
                 config.update(cfg)
         except:
