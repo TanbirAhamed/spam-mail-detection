@@ -11,10 +11,8 @@ from tensorflow.keras.models import load_model
 from tensorflow.keras.preprocessing.sequence import pad_sequences
 from sklearn.exceptions import NotFittedError
 
-# ⚠️ MUST BE FIRST - Before any other Streamlit commands
 st.set_page_config(page_title="Email Spam Detector", page_icon="📧", layout="wide")
 
-# ------------------- NLTK Download -------------------
 @st.cache_resource
 def download_nltk_data():
     try:
@@ -26,7 +24,6 @@ def download_nltk_data():
 
 download_nltk_data()
 
-# ------------------- Helpers -------------------
 def pretty_model_name_from_filename(fname: str) -> str:
     """Return a consistent, human-friendly model key from filename."""
     fname = fname.lower()
@@ -38,10 +35,8 @@ def pretty_model_name_from_filename(fname: str) -> str:
         return 'Random Forest'
     if 'gradient' in fname or 'boost' in fname:
         return 'Gradient Boosting'
-    # fallback to generic base name (without extension)
     return fname.split('.')[0].replace('_', ' ').title()
 
-# ------------------- Load Models -------------------
 @st.cache_resource
 def load_models():
     models = {}
@@ -50,11 +45,9 @@ def load_models():
     scaler = None
     encoder = None
 
-    # default config if not present
     config = {'max_len': 100, 'best_model': 'DNN', 'best_f1_score': 0.0}
 
     try:
-        # Load preprocessors safely from models/ folder
         try:
             with open('models/tfidf_vectorizer.pkl', 'rb') as f:
                 tfidf = pickle.load(f)
@@ -75,7 +68,6 @@ def load_models():
         except:
             encoder = None
 
-        # Map of candidate model filenames (change these if your filenames differ)
         candidate_ml_files = [
             'models/model_svm.pkl',
             'models/model_naive_bayes.pkl',
@@ -90,13 +82,10 @@ def load_models():
                     key = pretty_model_name_from_filename(fname)
                     models[key] = model_obj
             except FileNotFoundError:
-                # ignore missing files (UI will reflect available models)
                 continue
             except Exception as e:
                 st.warning(f"Failed to load {fname}: {e}")
                 continue
-
-        # Deep learning models and tokenizer from models/ folder
         try:
             with open('models/tokenizer.pkl', 'rb') as f:
                 tokenizer = pickle.load(f)
@@ -106,7 +95,7 @@ def load_models():
         try:
             models['DNN'] = load_model('models/model_dnn.h5', compile=False)
         except:
-            # ignore if missing
+            
             pass
 
         try:
@@ -114,7 +103,6 @@ def load_models():
         except:
             pass
 
-        # Attempt to load optional config file (not required)
         try:
             with open('models/model_config', 'r') as f:
                 cfg = json.load(f)
@@ -128,17 +116,15 @@ def load_models():
         st.error(f"Critical error loading models: {e}")
         return {}, None, None, None, None, config
 
-# ------------------- Text Preprocessing -------------------
 def preprocess_text(text: str) -> str:
     text = str(text).lower()
     
     try:
         tokens = word_tokenize(text)
     except Exception:
-        # Fallback if punkt fails
+
         tokens = text.split()
 
-    # Keep numbers and currency symbols, remove other punctuation
     tokens_cleaned = []
     for word in tokens:
         if any(char.isdigit() for char in word) or any(char in ['$', '£', '€', '¥'] for char in word):
@@ -148,7 +134,6 @@ def preprocess_text(text: str) -> str:
             if cleaned:
                 tokens_cleaned.append(cleaned)
 
-    # Stopwords except spam keywords
     try:
         stop_words = set(stopwords.words('english'))
     except:
@@ -159,20 +144,17 @@ def preprocess_text(text: str) -> str:
 
     tokens = [w for w in tokens_cleaned if (w not in stop_words) or (w in spam_keywords)]
 
-    # Light stemming
     ps = PorterStemmer()
     tokens = [ps.stem(w) if len(w) > 3 else w for w in tokens]
 
     return ' '.join(tokens)
 
-# ------------------- Prediction -------------------
 def predict_email(email_text: str, model_name: str, models: dict, tfidf, scaler, tokenizer, config):
     if model_name not in models:
         return "N/A", 0.0
 
     processed_text = preprocess_text(email_text)
 
-    # Deep learning models
     if model_name in ['DNN', 'LSTM'] and tokenizer is not None:
         try:
             sequence = tokenizer.texts_to_sequences([processed_text])
@@ -185,11 +167,9 @@ def predict_email(email_text: str, model_name: str, models: dict, tfidf, scaler,
             prediction = 1 if pred_prob > 0.5 else 0
             confidence = pred_prob if prediction == 1 else 1 - pred_prob
         except Exception as e:
-            # return helpful debug info to UI
             st.error(f"DL prediction error for {model_name}: {e}")
             return "N/A", 0.0
 
-    # Traditional ML models
     else:
         if tfidf is None:
             st.error("TF-IDF vectorizer not loaded. Traditional ML models cannot run.")
@@ -203,16 +183,14 @@ def predict_email(email_text: str, model_name: str, models: dict, tfidf, scaler,
         except Exception as e:
             st.error(f"TF-IDF transform error: {e}")
             return "N/A", 0.0
-
-        # Determine whether to add numeric features:
-        # Naive Bayes should only get raw TF-IDF (no extra 3 numeric features).
+.
         name_low = model_name.lower()
         is_naive = ('naive' in name_low) or ('bayes' in name_low)
 
         if is_naive:
             features = tfidf_features
         else:
-            # ensure scaler present for numeric features
+            
             if scaler is None:
                 st.warning("Scaler not loaded — cannot compute numeric features; trying TF-IDF only.")
                 features = tfidf_features
@@ -222,7 +200,7 @@ def predict_email(email_text: str, model_name: str, models: dict, tfidf, scaler,
                     num_words = len(word_tokenize(email_text))
                     num_sentences = len(sent_tokenize(email_text))
                 except:
-                    # Fallback if tokenizers fail
+
                     num_words = len(email_text.split())
                     num_sentences = email_text.count('.') + email_text.count('!') + email_text.count('?')
                 
@@ -240,16 +218,13 @@ def predict_email(email_text: str, model_name: str, models: dict, tfidf, scaler,
             st.error(f"Model prediction error for {model_name}: {e}")
             return "N/A", 0.0
 
-        # confidence: use predict_proba if available, else fallback
         if hasattr(model, 'predict_proba'):
             try:
                 proba = model.predict_proba(features)[0]
-                # if prediction is label (0/1), index accordingly; otherwise try to infer
                 if isinstance(prediction, (np.integer, int)):
                     idx = int(prediction)
                     confidence = float(proba[idx])
                 else:
-                    # if labels are strings, pick the max probability
                     confidence = float(np.max(proba))
             except Exception:
                 confidence = 1.0
@@ -258,25 +233,21 @@ def predict_email(email_text: str, model_name: str, models: dict, tfidf, scaler,
 
     return 'Spam' if int(prediction) == 1 else 'Ham', float(confidence)
 
-# ------------------- Streamlit App -------------------
 def main():
-    # DON'T PUT st.set_page_config() HERE - it's already at the top of the file
+
     st.title("📧 Email Spam Detection System")
     st.markdown("### AI-Powered Email Classification")
     st.markdown("---")
 
-    # Load all models
     models, tfidf, scaler, encoder, tokenizer, config = load_models()
 
     if not models:
         st.error("No models loaded successfully. Check your model files (4 .pkl and 2 .h5).")
         return
 
-    # Sidebar
     with st.sidebar:
         st.header("⚙️ Model Settings")
         available_models = list(models.keys())
-        # keep deterministic ordering: common order
         preferred_order = ['Naive Bayes', 'SVM', 'Random Forest', 'Gradient Boosting', 'DNN', 'LSTM']
         ordered = [m for m in preferred_order if m in available_models] + \
                   [m for m in available_models if m not in preferred_order]
@@ -293,16 +264,13 @@ def main():
         st.metric("Best Model (config)", config.get('best_model', 'N/A'))
         st.metric("Best F1-Score", f"{config.get('best_f1_score',0):.4f}")
 
-    # Initialize session state for email text
     if 'email_text' not in st.session_state:
         st.session_state.email_text = ""
 
-    # Main content
     col1, col2 = st.columns([3,2])
     with col1:
         st.subheader("📝 Enter Email Content")
         
-        # Quick examples - BEFORE text area
         st.markdown("**Quick Examples:**")
         ex1, ex2, ex3 = st.columns(3)
         with ex1:
@@ -317,7 +285,6 @@ def main():
         
         st.markdown("---")
         
-        # Text area with value from session state
         email_text = st.text_area(
             "Email Message", 
             value=st.session_state.email_text,
@@ -326,7 +293,6 @@ def main():
             key="email_input"
         )
         
-        # Update session state when text changes
         st.session_state.email_text = email_text
 
         predict_button = st.button("🔍 Analyze Email", type="primary", use_container_width=True)
@@ -355,7 +321,6 @@ def main():
                                     "<div style='background-color:#e8f5e9;padding:20px;border-left:5px solid #4caf50;border-radius:10px'>"
                                     "<h2>✅ LEGITIMATE EMAIL</h2></div>", unsafe_allow_html=True)
 
-                            # Safe clamp for progress (0.0 to 1.0)
                             try:
                                 pct = float(np.clip(confidence, 0.0, 1.0))
                             except:
