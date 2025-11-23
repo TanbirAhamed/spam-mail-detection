@@ -1,0 +1,6 @@
+opencv-contrib-python-headless==4.10.0.84
+numpy==2.1.1
+tensorflow==2.19.0
+Pillow==10.4.0
+plotly==5.24.1
+streamlit==1.38.0
