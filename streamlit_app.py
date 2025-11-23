@@ -11,12 +11,16 @@ from tensorflow.keras.models import load_model
 from tensorflow.keras.preprocessing.sequence import pad_sequences
 from sklearn.exceptions import NotFittedError
 
+# ⚠️ MUST BE FIRST - Before any other Streamlit commands
+st.set_page_config(page_title="Email Spam Detector", page_icon="📧", layout="wide")
+
 # ------------------- NLTK Download -------------------
 @st.cache_resource
 def download_nltk_data():
     try:
         nltk.download('punkt', quiet=True)
         nltk.download('stopwords', quiet=True)
+        nltk.download('punkt_tab', quiet=True)
     except:
         pass
 
@@ -127,7 +131,12 @@ def load_models():
 # ------------------- Text Preprocessing -------------------
 def preprocess_text(text: str) -> str:
     text = str(text).lower()
-    tokens = word_tokenize(text)
+    
+    try:
+        tokens = word_tokenize(text)
+    except Exception:
+        # Fallback if punkt fails
+        tokens = text.split()
 
     # Keep numbers and currency symbols, remove other punctuation
     tokens_cleaned = []
@@ -209,8 +218,14 @@ def predict_email(email_text: str, model_name: str, models: dict, tfidf, scaler,
                 features = tfidf_features
             else:
                 length = len(email_text)
-                num_words = len(word_tokenize(email_text))
-                num_sentences = len(sent_tokenize(email_text))
+                try:
+                    num_words = len(word_tokenize(email_text))
+                    num_sentences = len(sent_tokenize(email_text))
+                except:
+                    # Fallback if tokenizers fail
+                    num_words = len(email_text.split())
+                    num_sentences = email_text.count('.') + email_text.count('!') + email_text.count('?')
+                
                 try:
                     additional_features = scaler.transform([[length, num_words, num_sentences]])
                     features = np.hstack([tfidf_features, additional_features])
@@ -245,7 +260,7 @@ def predict_email(email_text: str, model_name: str, models: dict, tfidf, scaler,
 
 # ------------------- Streamlit App -------------------
 def main():
-    st.set_page_config(page_title="Email Spam Detector", page_icon="📧", layout="wide")
+    # DON'T PUT st.set_page_config() HERE - it's already at the top of the file
     st.title("📧 Email Spam Detection System")
     st.markdown("### AI-Powered Email Classification")
     st.markdown("---")
@@ -329,11 +344,11 @@ def main():
                                     "<div style='background-color:#e8f5e9;padding:20px;border-left:5px solid #4caf50;border-radius:10px'>"
                                     "<h2>✅ LEGITIMATE EMAIL</h2></div>", unsafe_allow_html=True)
 
-                            # Safe clamp for progress (0-100)
+                            # Safe clamp for progress (0.0 to 1.0)
                             try:
-                                pct = int(np.clip(confidence * 100.0, 0, 100))
+                                pct = float(np.clip(confidence, 0.0, 1.0))
                             except:
-                                pct = 0
+                                pct = 0.0
                             st.progress(pct)
                             st.metric("Confidence", f"{confidence:.2%}")
                             st.metric("Prediction", result)
